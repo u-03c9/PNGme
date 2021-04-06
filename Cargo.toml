@@ -1,0 +1,7 @@
+[package]
+name = "png-me"
+version = "0.1.0"
+authors = ["m5tfi"]
+edition = "2018"
+
+[dependencies]
