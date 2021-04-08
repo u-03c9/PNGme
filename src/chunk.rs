@@ -1,14 +1,15 @@
 #![allow(dead_code)]
 
-use crate::Result;
-use crate::{chunk_type::ChunkType, Error};
+use crate::{chunk_type::ChunkType, Error, Result};
 use crc::crc32;
 use std::{
-    convert::{TryFrom, TryInto},
-    fmt, str,
+    convert::TryFrom,
+    fmt,
+    io::{BufReader, Read},
+    str,
 };
 
-struct Chunk {
+pub struct Chunk {
     data_length: u32,
     chunk_type: ChunkType,
     message_data: Vec<u8>,
@@ -16,6 +17,25 @@ struct Chunk {
 }
 
 impl Chunk {
+    pub fn new(chunk_type: ChunkType, data: Vec<u8>) -> Self {
+        let data_length = data.len() as u32;
+        let message_data = data;
+        let crc_data: Vec<u8> = chunk_type
+            .bytes()
+            .to_vec()
+            .iter()
+            .chain(message_data.iter())
+            .copied()
+            .collect();
+        let crc = crc32::checksum_ieee(crc_data.as_ref());
+        Self {
+            data_length,
+            chunk_type,
+            message_data,
+            crc,
+        }
+    }
+
     pub fn length(&self) -> u32 {
         self.data_length
     }
@@ -54,25 +74,27 @@ impl TryFrom<&[u8]> for Chunk {
     type Error = Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self> {
-        let data_length: &[u8; 4] = &bytes[..4]
-            .try_into()
-            .expect("Couldn't retrive data_length bytes");
-        let data_length = u32::from_be_bytes(*data_length);
+        let mut reader = BufReader::new(bytes);
+        let mut buffer: [u8; 4] = Default::default();
 
-        let chunk_type: &[u8; 4] = &bytes[4..8]
-            .try_into()
-            .expect("Couldn't retrive chunk_type bytes");
-        let chunk_type = ChunkType::try_from(*chunk_type).expect("Couldn't create ChunkType");
+        reader.read_exact(&mut buffer)?;
+        let data_length = u32::from_be_bytes(buffer);
+
+        reader.read_exact(&mut buffer)?;
+        let chunk_type = ChunkType::try_from(buffer)?;
+
+        let mut buffer: [u8; 1] = Default::default();
+        let mut message_data = Vec::new();
+        for _ in 0..data_length {
+            reader.read_exact(&mut buffer)?;
+            message_data.append(&mut buffer.to_vec());
+        }
+
+        let mut buffer: [u8; 4] = Default::default();
+        reader.read_exact(&mut buffer)?;
+        let crc = u32::from_be_bytes(buffer);
 
         let data_end_index = 8 + data_length as usize;
-
-        let message_data = bytes[8..data_end_index].to_vec();
-
-        let crc: &[u8; 4] = &bytes[data_end_index..]
-            .try_into()
-            .expect("Couldn't retrive crc bytes");
-        let crc = u32::from_be_bytes(*crc);
-
         if crc32::checksum_ieee(&bytes[4..data_end_index]) != crc {
             Err(Error::from("Invalid CRC"))
         } else {

@@ -2,7 +2,7 @@
 
 use crate::{Error, Result};
 use std::{
-    convert::TryFrom,
+    convert::{TryFrom, TryInto},
     fmt,
     str::{from_utf8, FromStr},
 };
@@ -28,16 +28,7 @@ impl FromStr for ChunkType {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        // I am not really sure about this part,
-        // it passes the test, but there could be a better way.
-        if s.len() != 4 {
-            return Err(Error::from(
-                "Invalid chunk length; Chunks must be of length 4 bytes.",
-            ));
-        }
-
-        let mut bytes: [u8; 4] = [0; 4];
-        bytes.copy_from_slice(s.as_bytes());
+        let bytes: [u8; 4] = s.as_bytes().try_into().expect("Invalid ChunkType size");
 
         if let Err(e) = Self::are_all_alphabetic(&bytes) {
             Err(e)
