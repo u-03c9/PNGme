@@ -34,7 +34,10 @@ impl Png {
                 return Ok(self.chunks.remove(i));
             }
         }
-        Err(Error::from("Couldn't find the given chunk_type"))
+        Err(Error::from(format!(
+            "Couldn't find the chunk type `{}`",
+            chunk_type
+        )))
     }
 
     pub fn header(&self) -> &[u8; 8] {
@@ -120,11 +123,11 @@ impl TryFrom<&[u8]> for Png {
 
 impl fmt::Display for Png {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Png [[")?;
+        writeln!(f, "Png [")?;
         for chunk in self.chunks.iter() {
-            write!(f, "    {}", chunk)?;
+            writeln!(f, "    {}", chunk)?;
         }
-        write!(f, "]]")
+        writeln!(f, "]")
     }
 }
 

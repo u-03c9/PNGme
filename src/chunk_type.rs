@@ -4,7 +4,7 @@ use crate::{Error, Result};
 use std::{
     convert::{TryFrom, TryInto},
     fmt,
-    str::{from_utf8, FromStr},
+    str::{self, FromStr},
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -28,7 +28,10 @@ impl FromStr for ChunkType {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        let bytes: [u8; 4] = s.as_bytes().try_into().expect("Invalid ChunkType size");
+        let bytes: [u8; 4] = match s.as_bytes().try_into() {
+            Ok(bytes) => bytes,
+            Err(_) => return Err(Error::from("Invalid chunk type")),
+        };
 
         if let Err(e) = Self::are_all_alphabetic(&bytes) {
             Err(e)
@@ -40,7 +43,7 @@ impl FromStr for ChunkType {
 
 impl fmt::Display for ChunkType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", from_utf8(&self.bytes).unwrap())
+        write!(f, "{}", str::from_utf8(&self.bytes).unwrap())
     }
 }
 

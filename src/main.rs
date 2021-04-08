@@ -8,5 +8,7 @@ pub type Error = Box<dyn std::error::Error>;
 pub type Result<T> = std::result::Result<T, Error>;
 
 fn main() {
-    commands::parse_args();
+    if let Err(e) = commands::parse_args(){
+        println!("Error: {}", e);
+    }
 }

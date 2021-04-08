@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use crate::{chunk_type::ChunkType, Error, Result};
 use crc::crc32;
 use std::{
@@ -111,10 +109,10 @@ impl TryFrom<&[u8]> for Chunk {
 impl fmt::Display for Chunk {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Chunk {{")?;
-        write!(f, "  Length: {}", self.length())?;
-        write!(f, "  Type  : {}", self.chunk_type())?;
-        write!(f, "  Data  : {} bytes", self.data().len())?;
-        write!(f, "  Crc   : {}", self.crc())?;
+        write!(f, " Length: {},", self.length())?;
+        write!(f, " Type: {},", self.chunk_type())?;
+        write!(f, " Data: {} bytes,", self.data().len())?;
+        write!(f, " Crc: {}", self.crc())?;
         write!(f, "}}")
     }
 }
